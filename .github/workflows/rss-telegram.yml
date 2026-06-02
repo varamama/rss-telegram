@@ -1,0 +1,48 @@
+name: WordPress RSS to Telegram
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  post-to-telegram:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python packages
+        run: pip install -r requirements.txt
+
+      - name: Run RSS to Telegram script
+        env:
+          RSS_FEED_URL: "https://varamama.com/listings/feed"
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          MAX_POSTS_PER_RUN: "3"
+        run: python rss_to_telegram.py
+
+      - name: Save posted links
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          if [ -n "$(git status --porcelain)" ]; then
+            git add posted_links.json
+            git commit -m "Update posted RSS links"
+            git push
+          else
+            echo "No changes to commit"
+          fi
