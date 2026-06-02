@@ -10,29 +10,126 @@ from bs4 import BeautifulSoup
 
 
 FEED_URL = os.getenv("RSS_FEED_URL", "https://varamama.com/listings/feed/")
-TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
-TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
-
-STATE_FILE = Path("posted_links.json")
+STATE_FILE = Path(os.getenv("STATE_FILE", "posted_links.json"))
 MAX_POSTS_PER_RUN = int(os.getenv("MAX_POSTS_PER_RUN", "3"))
 
+POST_TO_TELEGRAM = os.getenv("POST_TO_TELEGRAM", "true").lower() == "true"
+POST_TO_FACEBOOK = os.getenv("POST_TO_FACEBOOK", "false").lower() == "true"
+POST_TO_BLOGGER = os.getenv("POST_TO_BLOGGER", "false").lower() == "true"
 
-def load_posted_links():
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+
+FACEBOOK_PAGE_ID = os.getenv("FACEBOOK_PAGE_ID", "")
+FACEBOOK_PAGE_ACCESS_TOKEN = os.getenv("FACEBOOK_PAGE_ACCESS_TOKEN", "")
+FACEBOOK_GRAPH_API_VERSION = os.getenv("FACEBOOK_GRAPH_API_VERSION", "v25.0")
+
+BLOGGER_CLIENT_ID = os.getenv("BLOGGER_CLIENT_ID", "")
+BLOGGER_CLIENT_SECRET = os.getenv("BLOGGER_CLIENT_SECRET", "")
+BLOGGER_REFRESH_TOKEN = os.getenv("BLOGGER_REFRESH_TOKEN", "")
+BLOGGER_BLOG_ID = os.getenv("BLOGGER_BLOG_ID", "")
+
+PLATFORMS = {
+    "telegram": POST_TO_TELEGRAM,
+    "facebook": POST_TO_FACEBOOK,
+    "blogger": POST_TO_BLOGGER,
+}
+
+
+class ConfigError(Exception):
+    pass
+
+
+def require_env(enabled, platform, variables):
+    if not enabled:
+        return
+
+    missing = [name for name, value in variables.items() if not value]
+    if missing:
+        raise ConfigError(
+            f"{platform} is enabled, but these environment variables/secrets are missing: "
+            + ", ".join(missing)
+        )
+
+
+def validate_config():
+    if not any(PLATFORMS.values()):
+        raise ConfigError("No platform is enabled. Set at least one POST_TO_* value to true.")
+
+    require_env(
+        POST_TO_TELEGRAM,
+        "Telegram",
+        {
+            "TELEGRAM_BOT_TOKEN": TELEGRAM_BOT_TOKEN,
+            "TELEGRAM_CHAT_ID": TELEGRAM_CHAT_ID,
+        },
+    )
+    require_env(
+        POST_TO_FACEBOOK,
+        "Facebook",
+        {
+            "FACEBOOK_PAGE_ID": FACEBOOK_PAGE_ID,
+            "FACEBOOK_PAGE_ACCESS_TOKEN": FACEBOOK_PAGE_ACCESS_TOKEN,
+        },
+    )
+    require_env(
+        POST_TO_BLOGGER,
+        "Blogger",
+        {
+            "BLOGGER_CLIENT_ID": BLOGGER_CLIENT_ID,
+            "BLOGGER_CLIENT_SECRET": BLOGGER_CLIENT_SECRET,
+            "BLOGGER_REFRESH_TOKEN": BLOGGER_REFRESH_TOKEN,
+            "BLOGGER_BLOG_ID": BLOGGER_BLOG_ID,
+        },
+    )
+
+
+def load_posted_state():
+    """Load posting state.
+
+    Backward compatibility:
+    - Old file format was a list of links already posted to Telegram.
+    - New format is a dict: {link: {"telegram": true, "facebook": true, "blogger": true}}
+    """
     if not STATE_FILE.exists():
-        return set()
+        return {}
 
     try:
         data = json.loads(STATE_FILE.read_text(encoding="utf-8"))
-        return set(data)
     except Exception:
-        return set()
+        return {}
+
+    if isinstance(data, list):
+        return {str(link): {"telegram": True} for link in data if link}
+
+    if isinstance(data, dict):
+        normalized = {}
+        for link, status in data.items():
+            if isinstance(status, dict):
+                normalized[str(link)] = {
+                    "telegram": bool(status.get("telegram", False)),
+                    "facebook": bool(status.get("facebook", False)),
+                    "blogger": bool(status.get("blogger", False)),
+                }
+            elif isinstance(status, list):
+                normalized[str(link)] = {name: name in status for name in PLATFORMS}
+            elif isinstance(status, bool):
+                normalized[str(link)] = {name: bool(status) for name in PLATFORMS}
+        return normalized
+
+    return {}
 
 
-def save_posted_links(posted_links):
-    STATE_FILE.write_text(
-        json.dumps(sorted(posted_links), ensure_ascii=False, indent=2),
-        encoding="utf-8"
-    )
+def save_posted_state(posted_state):
+    ordered = {
+        link: {
+            "telegram": bool(status.get("telegram", False)),
+            "facebook": bool(status.get("facebook", False)),
+            "blogger": bool(status.get("blogger", False)),
+        }
+        for link, status in sorted(posted_state.items())
+    }
+    STATE_FILE.write_text(json.dumps(ordered, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def get_entry_link(entry):
@@ -90,7 +187,32 @@ def get_image_url(entry):
     return None
 
 
-def build_message(entry, link):
+def get_summary_text(entry, max_chars=500):
+    html_blocks = []
+
+    if entry.get("summary"):
+        html_blocks.append(entry.get("summary"))
+
+    if entry.get("description"):
+        html_blocks.append(entry.get("description"))
+
+    for content_item in entry.get("content", []):
+        value = content_item.get("value")
+        if value:
+            html_blocks.append(value)
+
+    for block in html_blocks:
+        soup = BeautifulSoup(block, "html.parser")
+        text = soup.get_text(" ", strip=True)
+        if text:
+            if len(text) > max_chars:
+                return text[: max_chars - 3].rstrip() + "..."
+            return text
+
+    return ""
+
+
+def build_telegram_message(entry, link):
     title = html.escape(entry.get("title", "নতুন লিস্টিং"))
     safe_link = html.escape(link)
 
@@ -102,13 +224,38 @@ def build_message(entry, link):
     )
 
 
-def send_to_telegram(entry):
-    link = get_entry_link(entry)
-    if not link:
-        print("Skipped: no link found")
-        return False, None
+def build_facebook_message(entry, link):
+    title = entry.get("title", "নতুন লিস্টিং")
+    summary = get_summary_text(entry, max_chars=350)
 
-    message = build_message(entry, link)
+    parts = [f"🏠 নতুন লিস্টিং\n\n{title}"]
+    if summary:
+        parts.append(summary)
+    parts.append(f"বিস্তারিত দেখুন: {link}")
+    return "\n\n".join(parts)
+
+
+def build_blogger_content(entry, link):
+    title = html.escape(entry.get("title", "নতুন লিস্টিং"))
+    summary = html.escape(get_summary_text(entry, max_chars=1200)).replace("\n", "<br>")
+    image_url = get_image_url(entry)
+
+    blocks = [f"<h2>{title}</h2>"]
+
+    if image_url:
+        safe_image_url = html.escape(image_url, quote=True)
+        blocks.append(f'<p><img src="{safe_image_url}" alt="{title}" style="max-width:100%;height:auto;"></p>')
+
+    if summary:
+        blocks.append(f"<p>{summary}</p>")
+
+    safe_link = html.escape(link, quote=True)
+    blocks.append(f'<p><a href="{safe_link}" target="_blank" rel="noopener">বিস্তারিত দেখুন</a></p>')
+    return "\n".join(blocks)
+
+
+def send_to_telegram(entry, link):
+    message = build_telegram_message(entry, link)
     image_url = get_image_url(entry)
 
     base_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
@@ -126,10 +273,10 @@ def send_to_telegram(entry):
         )
 
         if photo_response.ok:
-            print(f"Posted with photo: {link}")
-            return True, link
+            print(f"Telegram posted with photo: {link}")
+            return True
 
-        print("sendPhoto failed. Trying sendMessage instead.")
+        print("Telegram sendPhoto failed. Trying sendMessage instead.")
         print(photo_response.text[:500])
 
     message_response = requests.post(
@@ -144,16 +291,110 @@ def send_to_telegram(entry):
     )
 
     if message_response.ok:
-        print(f"Posted message: {link}")
-        return True, link
+        print(f"Telegram posted message: {link}")
+        return True
 
-    print("sendMessage failed.")
+    print("Telegram sendMessage failed.")
     print(message_response.text[:500])
-    return False, link
+    return False
+
+
+def send_to_facebook(entry, link):
+    url = f"https://graph.facebook.com/{FACEBOOK_GRAPH_API_VERSION}/{FACEBOOK_PAGE_ID}/feed"
+    payload = {
+        "message": build_facebook_message(entry, link),
+        "link": link,
+        "access_token": FACEBOOK_PAGE_ACCESS_TOKEN,
+    }
+
+    response = requests.post(url, data=payload, timeout=30)
+
+    if response.ok:
+        data = response.json()
+        print(f"Facebook posted: {link} | post id: {data.get('id')}")
+        return True
+
+    print("Facebook post failed.")
+    print(response.text[:1000])
+    return False
+
+
+def get_blogger_access_token():
+    response = requests.post(
+        "https://oauth2.googleapis.com/token",
+        data={
+            "client_id": BLOGGER_CLIENT_ID,
+            "client_secret": BLOGGER_CLIENT_SECRET,
+            "refresh_token": BLOGGER_REFRESH_TOKEN,
+            "grant_type": "refresh_token",
+        },
+        timeout=30,
+    )
+
+    if not response.ok:
+        raise RuntimeError(f"Blogger access token refresh failed: {response.text[:1000]}")
+
+    return response.json()["access_token"]
+
+
+def send_to_blogger(entry, link):
+    access_token = get_blogger_access_token()
+    title = entry.get("title", "নতুন লিস্টিং")
+    content = build_blogger_content(entry, link)
+
+    url = f"https://www.googleapis.com/blogger/v3/blogs/{BLOGGER_BLOG_ID}/posts/"
+    response = requests.post(
+        url,
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json; charset=utf-8",
+        },
+        json={
+            "kind": "blogger#post",
+            "title": title,
+            "content": content,
+        },
+        timeout=30,
+    )
+
+    if response.ok:
+        data = response.json()
+        print(f"Blogger posted: {link} | post url: {data.get('url')}")
+        return True
+
+    print("Blogger post failed.")
+    print(response.text[:1000])
+    return False
+
+
+def platform_needs_post(posted_state, link, platform):
+    if not PLATFORMS.get(platform):
+        return False
+    return not posted_state.get(link, {}).get(platform, False)
+
+
+def entry_needs_any_enabled_platform(posted_state, link):
+    return any(platform_needs_post(posted_state, link, platform) for platform in PLATFORMS)
+
+
+def post_entry_to_enabled_platforms(entry, link, posted_state):
+    posted_state.setdefault(link, {})
+
+    if platform_needs_post(posted_state, link, "telegram"):
+        posted_state[link]["telegram"] = send_to_telegram(entry, link)
+
+    if platform_needs_post(posted_state, link, "facebook"):
+        posted_state[link]["facebook"] = send_to_facebook(entry, link)
+
+    if platform_needs_post(posted_state, link, "blogger"):
+        posted_state[link]["blogger"] = send_to_blogger(entry, link)
+
+    return posted_state[link]
 
 
 def main():
-    posted_links = load_posted_links()
+    validate_config()
+    posted_state = load_posted_state()
 
     feed = feedparser.parse(FEED_URL)
 
@@ -171,22 +412,30 @@ def main():
 
     for entry in reversed(entries):
         link = get_entry_link(entry)
-        if link and link not in posted_links:
+        if link and entry_needs_any_enabled_platform(posted_state, link):
             new_entries.append(entry)
 
     if not new_entries:
-        print("No new posts found.")
+        print("No new posts found for enabled platforms.")
         return
 
-    posts_to_send = new_entries[:MAX_POSTS_PER_RUN]
+    posts_to_process = new_entries[:MAX_POSTS_PER_RUN]
 
-    for entry in posts_to_send:
-        success, link = send_to_telegram(entry)
+    for entry in posts_to_process:
+        link = get_entry_link(entry)
+        if not link:
+            print("Skipped: no link found")
+            continue
 
-        if success and link:
-            posted_links.add(link)
+        try:
+            status = post_entry_to_enabled_platforms(entry, link, posted_state)
+            print(f"Posting status for {link}: {status}")
+        except Exception as exc:
+            print(f"Failed while processing {link}: {exc}")
+        finally:
+            save_posted_state(posted_state)
 
-    save_posted_links(posted_links)
+    save_posted_state(posted_state)
 
 
 if __name__ == "__main__":
