@@ -1,4 +1,12 @@
-[
-  "https://varamama.com/listing/executive-sales/",
-  "https://varamama.com/listing/position-fabric-inspector/"
-]
+{
+  "https://varamama.com/listing/executive-sales/": {
+    "telegram": true,
+    "facebook": false,
+    "blogger": true
+  },
+  "https://varamama.com/listing/position-fabric-inspector/": {
+    "telegram": true,
+    "facebook": false,
+    "blogger": true
+  }
+}
