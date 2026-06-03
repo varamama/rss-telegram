@@ -1,4 +1,4 @@
-name: WordPress RSS to Telegram Facebook Blogger
+name: WordPress RSS to Multi Social Auto Poster
 
 on:
   workflow_dispatch:
@@ -28,12 +28,17 @@ jobs:
 
       - name: Run RSS social auto poster
         env:
-          RSS_FEED_URL: "https://varamama.com/listings/feed"
+          RSS_FEED_URL: "https://varamama.com/listings/feed/"
           MAX_POSTS_PER_RUN: "3"
 
           POST_TO_TELEGRAM: "true"
           POST_TO_FACEBOOK: "true"
           POST_TO_BLOGGER: "true"
+          POST_TO_WHATSAPP: ${{ secrets.WHATSAPP_PHONE_NUMBER_ID != '' && secrets.WHATSAPP_ACCESS_TOKEN != '' && secrets.WHATSAPP_TO_NUMBERS != '' }}
+          POST_TO_LINKEDIN: ${{ secrets.LINKEDIN_ACCESS_TOKEN != '' && secrets.LINKEDIN_AUTHOR_URN != '' }}
+          POST_TO_INSTAGRAM: ${{ secrets.INSTAGRAM_IG_USER_ID != '' && secrets.INSTAGRAM_ACCESS_TOKEN != '' }}
+          POST_TO_PINTEREST: ${{ secrets.PINTEREST_ACCESS_TOKEN != '' && secrets.PINTEREST_BOARD_ID != '' }}
+          POST_TO_TIKTOK: ${{ secrets.TIKTOK_ACCESS_TOKEN != '' || (secrets.TIKTOK_CLIENT_KEY != '' && secrets.TIKTOK_CLIENT_SECRET != '' && secrets.TIKTOK_REFRESH_TOKEN != '') }}
 
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -46,6 +51,34 @@ jobs:
           BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
           BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
           BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+
+          WHATSAPP_PHONE_NUMBER_ID: ${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
+          WHATSAPP_ACCESS_TOKEN: ${{ secrets.WHATSAPP_ACCESS_TOKEN }}
+          WHATSAPP_TO_NUMBERS: ${{ secrets.WHATSAPP_TO_NUMBERS }}
+          WHATSAPP_GRAPH_API_VERSION: "v25.0"
+
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
+          LINKEDIN_API_VERSION: "202605"
+
+          INSTAGRAM_IG_USER_ID: ${{ secrets.INSTAGRAM_IG_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_GRAPH_API_VERSION: "v25.0"
+
+          PINTEREST_ACCESS_TOKEN: ${{ secrets.PINTEREST_ACCESS_TOKEN }}
+          PINTEREST_BOARD_ID: ${{ secrets.PINTEREST_BOARD_ID }}
+          PINTEREST_API_BASE_URL: "https://api.pinterest.com/v5"
+
+          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
+          TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+          TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
+          TIKTOK_POST_MODE: ${{ secrets.TIKTOK_POST_MODE || 'DIRECT_POST' }}
+          TIKTOK_PRIVACY_LEVEL: ${{ secrets.TIKTOK_PRIVACY_LEVEL || 'SELF_ONLY' }}
+          TIKTOK_DISABLE_COMMENT: "false"
+          TIKTOK_AUTO_ADD_MUSIC: "true"
+          TIKTOK_BRAND_CONTENT: "false"
+          TIKTOK_BRAND_ORGANIC: "true"
         run: python rss_to_telegram.py
 
       - name: Save posted links
