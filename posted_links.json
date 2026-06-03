@@ -2,11 +2,21 @@
   "https://varamama.com/listing/executive-sales/": {
     "telegram": true,
     "facebook": false,
-    "blogger": true
+    "blogger": true,
+    "whatsapp": false,
+    "linkedin": true,
+    "instagram": false,
+    "pinterest": false,
+    "tiktok": false
   },
   "https://varamama.com/listing/position-fabric-inspector/": {
     "telegram": true,
     "facebook": false,
-    "blogger": true
+    "blogger": true,
+    "whatsapp": false,
+    "linkedin": true,
+    "instagram": false,
+    "pinterest": false,
+    "tiktok": false
   }
 }
