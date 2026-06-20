@@ -1,249 +1,201 @@
-# Facebook + Blogger GitHub Setup Guide — Button by Button
+# RSS Social Auto Poster — Bangla Setup Guide
 
-এই guide শুধু আপনার uploaded project-এর জন্য। পুরোনো Telegram system রাখা হয়েছে। নতুন করে Facebook Page এবং Blogger যোগ করা হয়েছে।
+এই guide updated/fixed auto poster project-এর জন্য। এখন সব post clean format-এ যাবে:
+
+```text
+Title
+
+Description
+
+ওয়েবসাইট লিংক:
+https://varamama.com
+```
 
 ---
 
-## 1) ZIP upload/update কোথায় করবেন
+## 1) GitHub repository-তে updated files upload/replace করুন
 
-### যদি আপনার GitHub repository আগে থেকেই থাকে
+### Existing repository থাকলে
 
-1. GitHub খুলুন।
-2. আপনার repository খুলুন।
-3. `rss_to_telegram.py` ফাইল খুলুন।
-4. ডান পাশে/উপরে pencil icon বা **Edit this file** চাপুন।
-5. নতুন `rss_to_telegram.py`-এর পুরো code paste করুন।
-6. নিচে **Commit changes** চাপুন।
-7. `.github/workflows/rss-telegram.yml` ফাইল খুলুন।
-8. pencil icon চাপুন।
-9. নতুন workflow code paste করুন।
-10. **Commit changes** চাপুন।
+1. ZIP extract করুন।
+2. GitHub repository খুলুন।
+3. নিচের files replace করুন:
+   - `rss_to_telegram.py`
+   - `.github/workflows/rss-telegram.yml`
+   - `requirements.txt`
+   - `README.md`
+   - `SETUP_GUIDE_BN.md`
+4. **Commit changes** চাপুন।
 
-### যদি নতুন করে পুরো ZIP upload করেন
+### নতুন repository হলে
 
-1. GitHub repository খুলুন।
-2. **Add file** চাপুন।
-3. **Upload files** চাপুন।
-4. ZIP extract করার পর ভিতরের files drag/drop করুন। ZIP file নিজে upload করবেন না।
+1. ZIP extract করুন।
+2. GitHub repository খুলুন।
+3. **Add file → Upload files** চাপুন।
+4. ZIP file upload করবেন না; ZIP extract করার পর ভিতরের files upload করুন।
 5. **Commit changes** চাপুন।
 
 ---
 
-## 2) GitHub Secrets কোথায় বসাবেন
+## 2) GitHub Secrets বসানোর নিয়ম
 
 1. GitHub repository খুলুন।
-2. উপরের menu থেকে **Settings** চাপুন।
-3. বাম পাশে **Secrets and variables** চাপুন।
-4. **Actions** চাপুন।
-5. **Secrets** tab select করুন।
-6. **New repository secret** চাপুন।
-7. `Name` box-এ secret name paste করুন।
-8. `Secret` box-এ token/value paste করুন।
-9. **Add secret** চাপুন।
+2. **Settings** চাপুন।
+3. বাম পাশে **Secrets and variables → Actions** চাপুন।
+4. **New repository secret** চাপুন।
+5. Secret name এবং value বসিয়ে **Add secret** চাপুন।
 
 ---
 
-## 3) Facebook Secrets
+## 3) Required secrets
 
-একটা একটা করে **New repository secret** চাপবেন।
-
-### Secret 1
-
-Name:
-
-```text
-FACEBOOK_PAGE_ID
-```
-
-Secret:
-
-```text
-আপনার Facebook Page ID paste করুন
-```
-
-তারপর **Add secret**।
-
-### Secret 2
-
-Name:
-
-```text
-FACEBOOK_PAGE_ACCESS_TOKEN
-```
-
-Secret:
-
-```text
-আপনার Facebook Page Access Token paste করুন
-```
-
-তারপর **Add secret**।
-
----
-
-## 4) Blogger Secrets
-
-### Secret 1
-
-Name:
-
-```text
-BLOGGER_CLIENT_ID
-```
-
-Secret:
-
-```text
-আপনার Google OAuth Client ID paste করুন
-```
-
-তারপর **Add secret**।
-
-### Secret 2
-
-Name:
-
-```text
-BLOGGER_CLIENT_SECRET
-```
-
-Secret:
-
-```text
-আপনার Google OAuth Client Secret paste করুন
-```
-
-তারপর **Add secret**।
-
-### Secret 3
-
-Name:
-
-```text
-BLOGGER_REFRESH_TOKEN
-```
-
-Secret:
-
-```text
-আপনার Blogger Refresh Token paste করুন
-```
-
-তারপর **Add secret**।
-
-### Secret 4
-
-Name:
-
-```text
-BLOGGER_BLOG_ID
-```
-
-Secret:
-
-```text
-আপনার Blogger Blog ID paste করুন
-```
-
-তারপর **Add secret**।
-
----
-
-## 5) Workflow file-এ কোথায় edit করবেন
-
-File path:
-
-```text
-.github/workflows/rss-telegram.yml
-```
-
-GitHub-এ:
-
-1. Repository main page খুলুন।
-2. `.github` folder খুলুন।
-3. `workflows` folder খুলুন।
-4. `rss-telegram.yml` খুলুন।
-5. pencil icon / **Edit this file** চাপুন।
-
-এই অংশে আপনার WordPress RSS URL বসাবেন:
-
-```yaml
-RSS_FEED_URL: "https://varamama.com/listings/feed"
-```
-
-আপনার website হলে যেমন:
-
-```yaml
-RSS_FEED_URL: "https://your-domain.com/feed/"
-```
-
-Facebook এবং Blogger চালু রাখতে:
-
-```yaml
-POST_TO_TELEGRAM: "true"
-POST_TO_FACEBOOK: "true"
-POST_TO_BLOGGER: "true"
-```
-
-কোনো platform বন্ধ করতে `true` বদলে `false` লিখবেন।
-
----
-
-## 6) Workflow manually run করবেন
-
-1. GitHub repository খুলুন।
-2. উপরের menu থেকে **Actions** চাপুন।
-3. বাম পাশে **WordPress RSS to Telegram Facebook Blogger** চাপুন।
-4. ডান পাশে **Run workflow** চাপুন।
-5. Branch হিসেবে `main` select করুন।
-6. আবার **Run workflow** চাপুন।
-
----
-
-## 7) Run result কোথায় দেখবেন
-
-1. **Actions** tab খুলুন।
-2. সবচেয়ে উপরের/latest run খুলুন।
-3. `post-to-social` job খুলুন।
-4. red error থাকলে error step খুলুন।
-
-সাধারণ error:
-
-| Error | মানে |
-|---|---|
-| Facebook is enabled, but ... missing | Facebook secret বসানো হয়নি বা name ভুল |
-| Blogger is enabled, but ... missing | Blogger secret বসানো হয়নি বা name ভুল |
-| invalid_grant | Blogger refresh token wrong/expired |
-| 403 | permission নেই |
-| 401 | token invalid/expired |
-
----
-
-## 8) Copy-paste secret names একসাথে
-
-```text
-FACEBOOK_PAGE_ID
-FACEBOOK_PAGE_ACCESS_TOKEN
-BLOGGER_CLIENT_ID
-BLOGGER_CLIENT_SECRET
-BLOGGER_REFRESH_TOKEN
-BLOGGER_BLOG_ID
-```
-
-Telegram আগের মতো থাকলে এগুলোও থাকবে:
+### Telegram
 
 ```text
 TELEGRAM_BOT_TOKEN
 TELEGRAM_CHAT_ID
 ```
 
+### Facebook Page
+
+```text
+FACEBOOK_PAGE_ID
+FACEBOOK_PAGE_ACCESS_TOKEN
+```
+
+### Blogger
+
+```text
+BLOGGER_CLIENT_ID
+BLOGGER_CLIENT_SECRET
+BLOGGER_REFRESH_TOKEN
+BLOGGER_BLOG_ID
+```
+
+### LinkedIn
+
+```text
+LINKEDIN_ACCESS_TOKEN
+LINKEDIN_AUTHOR_URN
+```
+
+`LINKEDIN_AUTHOR_URN` উদাহরণ:
+
+```text
+Personal profile: urn:li:person:xxxx
+Company page:      urn:li:organization:123456
+```
+
+LinkedIn permission:
+
+- Personal profile posting: usually `w_member_social`
+- Company page posting: page admin access + organization posting permission/token দরকার
+
+Token/secret কখনো public chat বা GitHub code file-এ লিখবেন না। শুধু GitHub Secrets-এ রাখবেন।
+
 ---
 
-## 9) গুরুত্বপূর্ণ সতর্কতা
+## 4) LinkedIn ভুল post/photo error সমাধানের জন্য গুরুত্বপূর্ণ setting
 
-Token কখনো `rss_to_telegram.py` বা `rss-telegram.yml`-এর ভিতরে directly paste করবেন না। শুধু GitHub Secrets-এ paste করবেন। Workflow file-এ থাকবে শুধু:
+Workflow file `.github/workflows/rss-telegram.yml`-এ এই line রাখা হয়েছে:
 
 ```yaml
-FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
-BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+LINKEDIN_POST_STYLE: "media"
 ```
+
+এটাই safe mode। এই mode-এ:
+
+- LinkedIn আগে image upload করে
+- তারপর exact text + uploaded image দিয়ে post করে
+- Website preview/card generate করে না
+- তাই `| Vara Mama`, শুধু website name, বা broken photo preview দেখানোর chance কমে যায়
+
+যদি আপনি LinkedIn website card চান, তখন only তখন:
+
+```yaml
+LINKEDIN_POST_STYLE: "article"
+```
+
+কিন্তু আপনার screenshot-এর মতো ভুল format আসার কারণ সাধারণত website/RSS metadata ভুল হওয়া। তাই `media` রাখাই recommended।
+
+---
+
+## 5) Workflow run করবেন যেভাবে
+
+1. GitHub repo → **Actions**
+2. **WordPress RSS to Multi Social Auto Poster** খুলুন।
+3. **Run workflow** চাপুন।
+4. সাধারণ run করতে input blank রাখুন।
+5. **Run workflow** চাপুন।
+
+Workflow প্রতি 15 মিনিটে auto run হবে।
+
+---
+
+## 6) আগের ভুল LinkedIn post corrected format-এ repost করতে
+
+পুরো `posted_links.json` delete করবেন না; এতে সব platform-এ duplicate post হতে পারে। শুধু LinkedIn repost করতে:
+
+1. GitHub repo → **Actions**
+2. Workflow খুলুন।
+3. **Run workflow** চাপুন।
+4. `force_repost_platforms` field-এ লিখুন:
+
+```text
+linkedin
+```
+
+5. Run করুন।
+
+একাধিক platform repost করতে চাইলে:
+
+```text
+linkedin,facebook
+```
+
+---
+
+## 7) Error হলে কোথায় দেখবেন
+
+1. GitHub repo → **Actions**
+2. Failed workflow run খুলুন
+3. **Run RSS social auto poster** step খুলুন
+4. Error message দেখুন
+
+Common error:
+
+### LinkedIn 401/403
+
+কারণ: token expired, permission নেই, wrong author URN, company page admin access নেই।
+
+সমাধান: নতুন LinkedIn access token generate করে GitHub Secret update করুন। Company page হলে page admin permission নিশ্চিত করুন।
+
+### LinkedIn image upload failed
+
+কারণ: image URL private/broken/too small/unsupported format অথবা LinkedIn permission issue।
+
+সমাধান: script এখন image fail হলে text-only fallback করবে। ভালো result চাইলে website post/listing-এ public JPG/PNG featured image দিন।
+
+### Facebook photo failed
+
+কারণ: invalid image URL বা Page token permission issue।
+
+সমাধান: script photo fail হলে feed/link fallback করবে। Token permission ঠিক করুন।
+
+### Instagram skipped
+
+কারণ: Instagram feed publish করতে public image URL দরকার। RSS/listing image না থাকলে Instagram skip করবে।
+
+---
+
+## 8) Website side-এ ঠিক রাখবেন
+
+প্রতিটি listing/post page-এ এগুলো থাকলে social post বেশি সুন্দর হবে:
+
+```html
+<meta property="og:title" content="Post title">
+<meta property="og:description" content="Post description">
+<meta property="og:image" content="https://your-site.com/image.jpg">
+```
+
+WordPress হলে প্রতিটি post/listing-এ Featured Image দিন। Image public হতে হবে এবং JPG/PNG হলে ভালো।
