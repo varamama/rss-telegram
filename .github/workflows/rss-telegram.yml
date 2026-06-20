@@ -2,6 +2,11 @@ name: WordPress RSS to Multi Social Auto Poster
 
 on:
   workflow_dispatch:
+    inputs:
+      force_repost_platforms:
+        description: "Optional: comma-separated platforms to repost once, example: linkedin or linkedin,facebook"
+        required: false
+        default: ""
   schedule:
     - cron: "*/15 * * * *"
 
@@ -30,6 +35,7 @@ jobs:
         env:
           RSS_FEED_URL: "https://varamama.com/listings/feed/"
           MAX_POSTS_PER_RUN: "3"
+          FORCE_REPOST_PLATFORMS: ${{ github.event_name == 'workflow_dispatch' && inputs.force_repost_platforms || '' }}
 
           POST_TO_TELEGRAM: "true"
           POST_TO_FACEBOOK: "true"
@@ -59,7 +65,8 @@ jobs:
 
           LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
           LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
-          LINKEDIN_API_VERSION: "202605"
+          LINKEDIN_API_VERSION: "202606"
+          LINKEDIN_POST_STYLE: "media"
 
           INSTAGRAM_IG_USER_ID: ${{ secrets.INSTAGRAM_IG_USER_ID }}
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
